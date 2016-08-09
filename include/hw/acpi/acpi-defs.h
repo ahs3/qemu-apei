@@ -599,6 +599,50 @@ typedef struct AcpiDmarHardwareUnit AcpiDmarHardwareUnit;
 #define ACPI_DMAR_INCLUDE_PCI_ALL   1
 
 /*
+ * BERT - Boot Error Record Table, v1 (ACPI 4.0)
+ */
+struct AcpiTableBert {
+    ACPI_TABLE_HEADER_DEF
+    uint32_t region_length;	/* length of boot error region */
+    uint64_t address;		/* physical address of the region */
+} QEMU_PACKED;
+typedef struct AcpiTableBert AcpiTableBert;
+
+/* Boot error region format: what the BERT points to */
+struct AcpiBertRegion {
+    uint32_t block_status;	/* type of error information */
+    uint32_t raw_data_offset;	/* offset to raw error data */
+    uint32_t raw_data_length;
+    uint32_t data_length;	/* length of generic error data */
+    uint32_t error_severity;
+} QEMU_PACKED;
+typedef struct AcpiBertRegion AcpiBertRegion;
+
+/* Values for block_status flags above */
+
+#define ACPI_BERT_UNCORRECTABLE             (1)
+#define ACPI_BERT_CORRECTABLE               (1<<1)
+#define ACPI_BERT_MULTIPLE_UNCORRECTABLE    (1<<2)
+#define ACPI_BERT_MULTIPLE_CORRECTABLE      (1<<3)
+#define ACPI_BERT_ERROR_ENTRY_COUNT         (0xFF<<4)	/* 8 bits */
+
+/* Values for error_severity above */
+
+enum AcpiBertErrorSeverity {
+	ACPI_BERT_ERROR_CORRECTABLE = 0,
+	ACPI_BERT_ERROR_FATAL = 1,
+	ACPI_BERT_ERROR_CORRECTED = 2,
+	ACPI_BERT_ERROR_NONE = 3,
+	ACPI_BERT_ERROR_RESERVED = 4	/* 4 and greater are reserved */
+};
+
+/*
+ * Note: The generic error data that follows the error_severity field above
+ * uses the struct AcpiHestGenericData defined under the HEST table below
+ */
+
+
+/*
  * HEST - Hardware Error Source Table, v1 (ACPI 4.0)
  */
 struct AcpiTableHest {

@@ -938,5 +938,107 @@ typedef struct AcpiHestGenericDataV300 AcpiHestGenericDataV300;
 #define ACPI_HEST_GEN_VALID_TIMESTAMP       (1<<2)
 
 
+/* Subtable header for WHEA tables (EINJ, ERST, WDAT) */
+
+struct AcpiWheaHeader {
+	uint8_t action;
+	uint8_t instruction;
+	uint8_t flags;
+	uint8_t reserved;
+	struct AcpiGenericAddress register_region;
+	uint64_t value;	/* Value used with Read/Write register */
+	uint64_t mask;	/* Bitmask required for this register instruction */
+};
+
+/*
+ * ERST - Error Record Serialization Table, v1 (ACPI 4.0)
+ */
+
+struct AcpiTableErst {
+	ACPI_HEST_SUB_HEADER_DEF
+	uint32_t header_length;
+	uint32_t reserved;
+	uint32_t entries;
+} QEMU_PACKED;
+typedef struct AcpiTableErst AcpiTableErst;
+
+/* ERST Serialization Entries (actions) */
+
+struct AcpiErstEntry {
+	struct AcpiWheaHeader whea_header;	/* Common header for WHEA tables */
+} QEMU_PACKED;
+typedef struct AcpiErstEntry AcpiErstEntry;
+
+/* Masks for Flags field above */
+
+#define ACPI_ERST_PRESERVE          (1)
+
+/* Values for Action field above */
+
+enum AcpiErstActions {
+	ACPI_ERST_BEGIN_WRITE = 0,
+	ACPI_ERST_BEGIN_READ = 1,
+	ACPI_ERST_BEGIN_CLEAR = 2,
+	ACPI_ERST_END = 3,
+	ACPI_ERST_SET_RECORD_OFFSET = 4,
+	ACPI_ERST_EXECUTE_OPERATION = 5,
+	ACPI_ERST_CHECK_BUSY_STATUS = 6,
+	ACPI_ERST_GET_COMMAND_STATUS = 7,
+	ACPI_ERST_GET_RECORD_ID = 8,
+	ACPI_ERST_SET_RECORD_ID = 9,
+	ACPI_ERST_GET_RECORD_COUNT = 10,
+	ACPI_ERST_BEGIN_DUMMY_WRIITE = 11,
+	ACPI_ERST_NOT_USED = 12,
+	ACPI_ERST_GET_ERROR_RANGE = 13,
+	ACPI_ERST_GET_ERROR_LENGTH = 14,
+	ACPI_ERST_GET_ERROR_ATTRIBUTES = 15,
+	ACPI_ERST_ACTION_RESERVED = 16	/* 16 and greater are reserved */
+};
+
+/* Values for Instruction field above */
+
+enum AcpiErstInstructions {
+	ACPI_ERST_READ_REGISTER = 0,
+	ACPI_ERST_READ_REGISTER_VALUE = 1,
+	ACPI_ERST_WRITE_REGISTER = 2,
+	ACPI_ERST_WRITE_REGISTER_VALUE = 3,
+	ACPI_ERST_NOOP = 4,
+	ACPI_ERST_LOAD_VAR1 = 5,
+	ACPI_ERST_LOAD_VAR2 = 6,
+	ACPI_ERST_STORE_VAR1 = 7,
+	ACPI_ERST_ADD = 8,
+	ACPI_ERST_SUBTRACT = 9,
+	ACPI_ERST_ADD_VALUE = 10,
+	ACPI_ERST_SUBTRACT_VALUE = 11,
+	ACPI_ERST_STALL = 12,
+	ACPI_ERST_STALL_WHILE_TRUE = 13,
+	ACPI_ERST_SKIP_NEXT_IF_TRUE = 14,
+	ACPI_ERST_GOTO = 15,
+	ACPI_ERST_SET_SRC_ADDRESS_BASE = 16,
+	ACPI_ERST_SET_DST_ADDRESS_BASE = 17,
+	ACPI_ERST_MOVE_DATA = 18,
+	ACPI_ERST_INSTRUCTION_RESERVED = 19	/* 19 and greater are reserved */
+};
+
+/* Command status return values */
+
+enum AcpiErstCommandStatus {
+	ACPI_ERST_SUCESS = 0,
+	ACPI_ERST_NO_SPACE = 1,
+	ACPI_ERST_NOT_AVAILABLE = 2,
+	ACPI_ERST_FAILURE = 3,
+	ACPI_ERST_RECORD_EMPTY = 4,
+	ACPI_ERST_NOT_FOUND = 5,
+	ACPI_ERST_STATUS_RESERVED = 6	/* 6 and greater are reserved */
+};
+
+/* Error Record Serialization Information */
+
+struct AcpiErstInfo {
+	uint16_t signature;		/* Should be "ER" */
+	uint8_t data[48];
+} QEMU_PACKED;
+typedef struct AcpiErstInfo AcpiErstInfo;
+
 
 #endif

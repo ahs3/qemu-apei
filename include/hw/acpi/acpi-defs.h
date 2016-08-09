@@ -965,7 +965,7 @@ typedef struct AcpiTableErst AcpiTableErst;
 /* ERST Serialization Entries (actions) */
 
 struct AcpiErstEntry {
-	struct AcpiWheaHeader whea_header;	/* Common header for WHEA tables */
+	struct AcpiWheaHeader whea_header;  /* Common header for WHEA tables */
 } QEMU_PACKED;
 typedef struct AcpiErstEntry AcpiErstEntry;
 
@@ -1039,6 +1039,114 @@ struct AcpiErstInfo {
 	uint8_t data[48];
 } QEMU_PACKED;
 typedef struct AcpiErstInfo AcpiErstInfo;
+
+/*
+ * EINJ - Error Injection Table, v1 (ACPI 4.0)
+ */
+
+struct AcpiTableEinj {
+	ACPI_HEST_SUB_HEADER_DEF
+	uint32_t header_length;
+	uint8_t flags;
+	uint8_t reserved[3];
+	uint32_t entries;
+} QEMU_PACKED;
+typedef struct AcpiTableEinj AcpiTableEinj;
+
+/* EINJ Injection Instruction Entries (actions) */
+
+struct AcpiEinjEntry {
+	struct AcpiWheaHeader whea_header;  /* Common header for WHEA tables */
+} QEMU_PACKED;
+typedef struct AcpiEinjEntry AcpiEinjEntry;
+
+/* Masks for Flags field above */
+
+#define ACPI_EINJ_PRESERVE          (1)
+
+/* Values for Action field above */
+
+enum AcpiEinjActions {
+	ACPI_EINJ_BEGIN_OPERATION = 0,
+	ACPI_EINJ_GET_TRIGGER_TABLE = 1,
+	ACPI_EINJ_SET_ERROR_TYPE = 2,
+	ACPI_EINJ_GET_ERROR_TYPE = 3,
+	ACPI_EINJ_END_OPERATION = 4,
+	ACPI_EINJ_EXECUTE_OPERATION = 5,
+	ACPI_EINJ_CHECK_BUSY_STATUS = 6,
+	ACPI_EINJ_GET_COMMAND_STATUS = 7,
+	ACPI_EINJ_SET_ERROR_TYPE_WITH_ADDRESS = 8,
+	ACPI_EINJ_ACTION_RESERVED = 9,	/* 9 and greater are reserved */
+	ACPI_EINJ_TRIGGER_ERROR = 0xFF	/* Except for this value */
+};
+
+/* Values for Instruction field above */
+
+enum AcpiEinjInstructions {
+	ACPI_EINJ_READ_REGISTER = 0,
+	ACPI_EINJ_READ_REGISTER_VALUE = 1,
+	ACPI_EINJ_WRITE_REGISTER = 2,
+	ACPI_EINJ_WRITE_REGISTER_VALUE = 3,
+	ACPI_EINJ_NOOP = 4,
+	ACPI_EINJ_FLUSH_CACHELINE = 5,
+	ACPI_EINJ_INSTRUCTION_RESERVED = 6	/* 6 and greater are reserved */
+};
+
+struct AcpiEinjErrorTypeWithAddr {
+	uint32_t error_type;
+	uint32_t vendor_struct_offset;
+	uint32_t flags;
+	uint32_t apic_id;
+	uint64_t address;
+	uint64_t range;
+	uint32_t pcie_id;
+} QEMU_PACKED;
+typedef struct AcpiEinjErrorTypeWithAddr AcpiEinjErrorTypeWithAddr;
+
+struct AcpiEinjVendor {
+	uint32_t length;
+	uint32_t pcie_id;
+	uint16_t vendor_id;
+	uint16_t device_id;
+	uint8_t revision_id;
+	uint8_t reserved[3];
+} QEMU_PACKED;
+typedef struct AcpiEinjVendor AcpiEinjVendor;
+
+/* EINJ Trigger Error Action Table */
+
+struct AcpiEinjTrigger {
+	uint32_t header_size;
+	uint32_t revision;
+	uint32_t table_size;
+	uint32_t entry_count;
+} QEMU_PACKED;
+typedef struct AcpiEinjTrigger AcpiEinjTrigger;
+
+/* Command status return values */
+
+enum AcpiEinjCommandStatus {
+	ACPI_EINJ_SUCCESS = 0,
+	ACPI_EINJ_FAILURE = 1,
+	ACPI_EINJ_INVALID_ACCESS = 2,
+	ACPI_EINJ_STATUS_RESERVED = 3	/* 3 and greater are reserved */
+};
+
+/* Error types returned from ACPI_EINJ_GET_ERROR_TYPE (bitfield) */
+
+#define ACPI_EINJ_PROCESSOR_CORRECTABLE     (1)
+#define ACPI_EINJ_PROCESSOR_UNCORRECTABLE   (1<<1)
+#define ACPI_EINJ_PROCESSOR_FATAL           (1<<2)
+#define ACPI_EINJ_MEMORY_CORRECTABLE        (1<<3)
+#define ACPI_EINJ_MEMORY_UNCORRECTABLE      (1<<4)
+#define ACPI_EINJ_MEMORY_FATAL              (1<<5)
+#define ACPI_EINJ_PCIX_CORRECTABLE          (1<<6)
+#define ACPI_EINJ_PCIX_UNCORRECTABLE        (1<<7)
+#define ACPI_EINJ_PCIX_FATAL                (1<<8)
+#define ACPI_EINJ_PLATFORM_CORRECTABLE      (1<<9)
+#define ACPI_EINJ_PLATFORM_UNCORRECTABLE    (1<<10)
+#define ACPI_EINJ_PLATFORM_FATAL            (1<<11)
+#define ACPI_EINJ_VENDOR_DEFINED            (1<<31)
 
 
 #endif

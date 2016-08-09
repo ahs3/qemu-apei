@@ -598,4 +598,301 @@ typedef struct AcpiDmarHardwareUnit AcpiDmarHardwareUnit;
 /* Masks for Flags field above */
 #define ACPI_DMAR_INCLUDE_PCI_ALL   1
 
+/*
+ * HEST - Hardware Error Source Table, v1 (ACPI 4.0)
+ */
+struct AcpiTableHest {
+    ACPI_TABLE_HEADER_DEF		/* standard ACPI table header */
+    uint32_t error_source_count;
+} QEMU_PACKED;
+typedef struct AcpiTableHest AcpiTableHest;
+
+/*
+ * HEST subtables
+ */
+#define ACPI_HEST_SUB_HEADER_DEF   /* Common ACPI sub-structure header */\
+    uint16_t  type;                               \
+    uint16_t  source_id;
+
+/* HEST subtable types */
+enum AcpiHestTypes {
+	ACPI_HEST_TYPE_IA32_CHECK = 0,
+	ACPI_HEST_TYPE_IA32_CORRECTED_CHECK = 1,
+	ACPI_HEST_TYPE_IA32_NMI = 2,
+	ACPI_HEST_TYPE_NOT_USED3 = 3,
+	ACPI_HEST_TYPE_NOT_USED4 = 4,
+	ACPI_HEST_TYPE_NOT_USED5 = 5,
+	ACPI_HEST_TYPE_AER_ROOT_PORT = 6,
+	ACPI_HEST_TYPE_AER_ENDPOINT = 7,
+	ACPI_HEST_TYPE_AER_BRIDGE = 8,
+	ACPI_HEST_TYPE_GENERIC_ERROR = 9,
+	ACPI_HEST_TYPE_GENERIC_ERROR_V2 = 10,
+	ACPI_HEST_TYPE_RESERVED = 11	/* 11 and greater are reserved */
+};
+
+/*
+ * IA32 Error Bank(s) - Follows the struct acpi_hest_ia_machine_check and
+ * struct acpi_hest_ia_corrected structures.
+ */
+struct AcpiHestIaErrorBank {
+	uint8_t bank_number;
+	uint8_t clear_status_on_init;
+	uint8_t status_format;
+	uint8_t reserved;
+	uint32_t control_register;
+	uint64_t control_data;
+	uint32_t status_register;
+	uint32_t address_register;
+	uint32_t misc_register;
+} QEMU_PACKED;
+typedef struct AcpiHestIaErrorBank AcpiHestIaErrorBank;
+
+/* Common HEST sub-structure for PCI/AER structures below (6,7,8) */
+
+struct AcpiHestAerCommon {
+	uint16_t reserved1;
+	uint8_t flags;
+	uint8_t enabled;
+	uint32_t records_to_preallocate;
+	uint32_t max_sections_per_record;
+	uint32_t bus;		/* Bus and Segment numbers */
+	uint16_t device;
+	uint16_t function;
+	uint16_t device_control;
+	uint16_t reserved2;
+	uint32_t uncorrectable_mask;
+	uint32_t uncorrectable_severity;
+	uint32_t correctable_mask;
+	uint32_t advanced_capabilities;
+} QEMU_PACKED;
+typedef struct AcpiHestAerCommon AcpiHestAerCommon;
+
+/* Masks for HEST Flags fields */
+
+#define ACPI_HEST_FIRMWARE_FIRST        (1)
+#define ACPI_HEST_GLOBAL                (1<<1)
+
+/*
+ * Macros to access the bus/segment numbers in Bus field above:
+ *  Bus number is encoded in bits 7:0
+ *  Segment number is encoded in bits 23:8
+ */
+#define ACPI_HEST_BUS(bus)              ((bus) & 0xFF)
+#define ACPI_HEST_SEGMENT(bus)          (((bus) >> 8) & 0xFFFF)
+
+/* Hardware Error Notification */
+
+struct AcpiHestNotify {
+	uint8_t type;
+	uint8_t length;
+	uint16_t config_write_enable;
+	uint32_t poll_interval;
+	uint32_t vector;
+	uint32_t polling_threshold_value;
+	uint32_t polling_threshold_window;
+	uint32_t error_threshold_value;
+	uint32_t error_threshold_window;
+} QEMU_PACKED;
+typedef struct AcpiHestNotify AcpiHestNotify;
+
+/* Values for Notify Type field above */
+
+enum AcpiHestNotifyTypes {
+	ACPI_HEST_NOTIFY_POLLED = 0,
+	ACPI_HEST_NOTIFY_EXTERNAL = 1,
+	ACPI_HEST_NOTIFY_LOCAL = 2,
+	ACPI_HEST_NOTIFY_SCI = 3,
+	ACPI_HEST_NOTIFY_NMI = 4,
+	ACPI_HEST_NOTIFY_CMCI = 5,	/* ACPI 5.0 */
+	ACPI_HEST_NOTIFY_MCE = 6,	/* ACPI 5.0 */
+	ACPI_HEST_NOTIFY_GPIO = 7,	/* ACPI 6.0 */
+	ACPI_HEST_NOTIFY_SEA = 8,	/* ACPI 6.1 */
+	ACPI_HEST_NOTIFY_SEI = 9,	/* ACPI 6.1 */
+	ACPI_HEST_NOTIFY_GSIV = 10,	/* ACPI 6.1 */
+	ACPI_HEST_NOTIFY_RESERVED = 11	/* 11 and greater are reserved */
+};
+
+/* Values for config_write_enable bitfield above */
+
+#define ACPI_HEST_TYPE                  (1)
+#define ACPI_HEST_POLL_INTERVAL         (1<<1)
+#define ACPI_HEST_POLL_THRESHOLD_VALUE  (1<<2)
+#define ACPI_HEST_POLL_THRESHOLD_WINDOW (1<<3)
+#define ACPI_HEST_ERR_THRESHOLD_VALUE   (1<<4)
+#define ACPI_HEST_ERR_THRESHOLD_WINDOW  (1<<5)
+
+/*
+ * HEST subtables
+ */
+
+/* 0: IA32 Machine Check Exception */
+
+struct AcpiHestIaMachineCheck {
+	ACPI_HEST_SUB_HEADER_DEF
+	uint16_t reserved1;
+	uint8_t flags;
+	uint8_t enabled;
+	uint32_t records_to_preallocate;
+	uint32_t max_sections_per_record;
+	uint64_t global_capability_data;
+	uint64_t global_control_data;
+	uint8_t num_hardware_banks;
+	uint8_t reserved3[7];
+} QEMU_PACKED;
+typedef struct AcpiHestIaMachineCheck AcpiHestIaMachineCheck;
+
+/* 1: IA32 Corrected Machine Check */
+
+struct AcpiHestIaCorrected {
+	ACPI_HEST_SUB_HEADER_DEF
+	uint16_t reserved1;
+	uint8_t flags;
+	uint8_t enabled;
+	uint32_t records_to_preallocate;
+	uint32_t max_sections_per_record;
+	AcpiHestNotify notify;
+	uint8_t num_hardware_banks;
+	uint8_t reserved2[3];
+} QEMU_PACKED;
+typedef struct AcpiHestIaCorrected AcpiHestIaCorrected;
+
+/* 2: IA32 Non-Maskable Interrupt */
+
+struct AcpiHestIaNmi {
+	ACPI_HEST_SUB_HEADER_DEF
+	uint32_t reserved;
+	uint32_t records_to_preallocate;
+	uint32_t max_sections_per_record;
+	uint32_t max_raw_data_length;
+} QEMU_PACKED;
+typedef struct AcpiHestIaNmi AcpiHestIaNmi;
+
+/* 3,4,5: Not used */
+
+/* 6: PCI Express Root Port AER */
+
+struct AcpiHestAerRoot {
+	ACPI_HEST_SUB_HEADER_DEF
+	AcpiHestAerCommon aer;
+	uint32_t root_error_command;
+} QEMU_PACKED;
+typedef struct AcpiHestAerRoot AcpiHestAerRoot;
+
+/* 7: PCI Express AER (AER Endpoint) */
+
+struct AcpiHestAer {
+	ACPI_HEST_SUB_HEADER_DEF
+	AcpiHestAerCommon aer;
+} QEMU_PACKED;
+typedef struct AcpiHestAer AcpiHestAer;
+
+/* 8: PCI Express/PCI-X Bridge AER */
+
+struct AcpiHestAerBridge {
+	ACPI_HEST_SUB_HEADER_DEF
+	AcpiHestAerCommon aer;
+	uint32_t uncorrectable_mask2;
+	uint32_t uncorrectable_severity2;
+	uint32_t advanced_capabilities2;
+} QEMU_PACKED;
+typedef struct AcpiHestAerBridge AcpiHestAerBridge;
+
+/* 9: Generic Hardware Error Source */
+
+struct AcpiHestGeneric {
+	ACPI_HEST_SUB_HEADER_DEF
+	uint16_t related_source_id;
+	uint8_t reserved;
+	uint8_t enabled;
+	uint32_t records_to_preallocate;
+	uint32_t max_sections_per_record;
+	uint32_t max_raw_data_length;
+	struct AcpiGenericAddress error_status_address;
+	AcpiHestNotify notify;
+	uint32_t error_block_length;
+} QEMU_PACKED;
+typedef struct AcpiHestGeneric AcpiHestGeneric;
+
+/* 10: Generic Hardware Error Source, version 2 */
+
+struct AcpiHestGenericV2 {
+	ACPI_HEST_SUB_HEADER_DEF
+	uint16_t related_source_id;
+	uint8_t reserved;
+	uint8_t enabled;
+	uint32_t records_to_preallocate;
+	uint32_t max_sections_per_record;
+	uint32_t max_raw_data_length;
+	struct AcpiGenericAddress error_status_address;
+	AcpiHestNotify notify;
+	uint32_t error_block_length;
+	struct AcpiGenericAddress read_ack_register;
+	uint64_t read_ack_preserve;
+	uint64_t read_ack_write;
+} QEMU_PACKED;
+typedef struct AcpiHestGenericV2 AcpiHestGenericV2;
+
+/* Generic Error Status block */
+
+struct AcpiHestGenericStatus {
+	uint32_t block_status;
+	uint32_t raw_data_offset;
+	uint32_t raw_data_length;
+	uint32_t data_length;
+	uint32_t error_severity;
+} QEMU_PACKED;
+typedef struct AcpiHestGenericStatus AcpiHestGenericStatus;
+
+/* Values for block_status flags above */
+
+#define ACPI_HEST_UNCORRECTABLE             (1)
+#define ACPI_HEST_CORRECTABLE               (1<<1)
+#define ACPI_HEST_MULTIPLE_UNCORRECTABLE    (1<<2)
+#define ACPI_HEST_MULTIPLE_CORRECTABLE      (1<<3)
+#define ACPI_HEST_ERROR_ENTRY_COUNT         (0xFF<<4)	/* 8 bits, error count */
+
+/* Generic Error Data entry */
+
+struct AcpiHestGenericData {
+	uint8_t section_type[16];
+	uint32_t error_severity;
+	uint16_t revision;
+	uint8_t validation_bits;
+	uint8_t flags;
+	uint32_t error_data_length;
+	uint8_t fru_id[16];
+	uint8_t fru_text[20];
+} QEMU_PACKED;
+typedef struct AcpiHestGenericData AcpiHestGenericData;
+
+/* Extension for revision 0x0300 */
+
+struct AcpiHestGenericDataV300 {
+	uint8_t section_type[16];
+	uint32_t error_severity;
+	uint16_t revision;
+	uint8_t validation_bits;
+	uint8_t flags;
+	uint32_t error_data_length;
+	uint8_t fru_id[16];
+	uint8_t fru_text[20];
+	uint64_t time_stamp;
+} QEMU_PACKED;
+typedef struct AcpiHestGenericDataV300 AcpiHestGenericDataV300;
+
+/* Values for error_severity above */
+
+#define ACPI_HEST_GEN_ERROR_RECOVERABLE     0
+#define ACPI_HEST_GEN_ERROR_FATAL           1
+#define ACPI_HEST_GEN_ERROR_CORRECTED       2
+#define ACPI_HEST_GEN_ERROR_NONE            3
+
+/* Flags for validation_bits above */
+
+#define ACPI_HEST_GEN_VALID_FRU_ID          (1)
+#define ACPI_HEST_GEN_VALID_FRU_STRING      (1<<1)
+#define ACPI_HEST_GEN_VALID_TIMESTAMP       (1<<2)
+
+
+
 #endif

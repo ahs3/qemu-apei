@@ -634,6 +634,25 @@ build_dsdt(GArray *table_data, BIOSLinker *linker, VirtGuestInfo *guest_info)
     free_aml_allocator();
 }
 
+/* BERT */
+static void
+build_bert(GArray *table_data, BIOSLinker *linker, VirtGuestInfo *guest_info)
+{
+    int bert_start = table_data->len;
+    const MemMapEntry *memmap = guest_info->memmap;
+    AcpiTableBert *bert;
+
+    bert = acpi_data_push(table_data, sizeof *bert);
+
+    /* Set up a region for use by BERT */
+    bert->region_length = cpu_to_le32(memmap[VIRT_BERT_REGION].size);
+    bert->address = cpu_to_le64(memmap[VIRT_BERT_REGION].base);
+
+    build_header(linker, table_data,
+                 (void *)(table_data->data + bert_start), "BERT",
+                 table_data->len - bert_start, 1, NULL, NULL);
+}
+
 typedef
 struct AcpiBuildState {
     /* Copy of table in RAM (for patching). */
@@ -689,6 +708,13 @@ void virt_acpi_build(VirtGuestInfo *guest_info, AcpiBuildTables *tables)
 
     acpi_add_table(table_offsets, tables_blob);
     build_spcr(tables_blob, tables->linker, guest_info);
+
+    /*
+     * BERT, HEST, ERST and EINJ are also pointed to by the RSDT, but
+     * are used by the RAS/APEI subsystem.
+     */
+    acpi_add_table(table_offsets, tables_blob);
+    build_bert(tables_blob, tables->linker, guest_info);
 
     if (nb_numa_nodes > 0) {
         acpi_add_table(table_offsets, tables_blob);

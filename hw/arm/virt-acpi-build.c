@@ -653,6 +653,134 @@ build_bert(GArray *table_data, BIOSLinker *linker, VirtGuestInfo *guest_info)
                  table_data->len - bert_start, 1, NULL, NULL);
 }
 
+/* HEST GHES */
+static void
+build_ghes(GArray *table_data, VirtGuestInfo *guest_info, int *id)
+{
+    AcpiHestGeneric *ghes;
+    const MemMapEntry *memmap = guest_info->memmap;
+    uint64_t address;
+
+    ghes = acpi_data_push(table_data, sizeof *ghes);
+    ghes->type = cpu_to_le16(ACPI_HEST_TYPE_GENERIC_ERROR);
+    ghes->source_id = cpu_to_le16((uint16_t)(*id));
+    ghes->related_source_id = cpu_to_le16(0xffff);
+    ghes->reserved = 0;
+    ghes->enabled = 1;
+    ghes->records_to_preallocate = cpu_to_le32(1);
+    ghes->max_sections_per_record = cpu_to_le32(1);
+    ghes->max_raw_data_length = cpu_to_le32(0x1000);
+
+    /* pointer to register with address of this error data block */
+    ghes->error_status_address.space_id = AML_SYSTEM_MEMORY;
+    ghes->error_status_address.bit_width = 8;
+    ghes->error_status_address.bit_offset = 0;
+    ghes->error_status_address.access_width = 1;
+    address = memmap[VIRT_HEST_CONTROL].base + ((*id) * sizeof(uint64_t));
+    ghes->error_status_address.address = cpu_to_le64(address);
+
+    /* how does the cpu get notified? */
+    ghes->notify.type = ACPI_HEST_NOTIFY_SEI;
+    ghes->notify.length = (uint8_t)sizeof(AcpiHestNotify);
+    ghes->notify.config_write_enable = cpu_to_le16(ACPI_HEST_TYPE);
+
+    ghes->error_block_length = cpu_to_le32(0x10000);
+}
+
+/* HEST GHESv2 */
+static void
+build_ghesv2(GArray *table_data, VirtGuestInfo *guest_info, int *id)
+{
+    AcpiHestGenericV2 *ghesv2;
+    const MemMapEntry *memmap = guest_info->memmap;
+    uint64_t address;
+    int source = *id;
+
+    ghesv2 = acpi_data_push(table_data, sizeof *ghesv2);
+    ghesv2->type = cpu_to_le16(ACPI_HEST_TYPE_GENERIC_ERROR_V2);
+    ghesv2->source_id = cpu_to_le16((uint16_t)(*id));
+    ghesv2->related_source_id = cpu_to_le16(0xffff);
+    ghesv2->reserved = 0;
+    ghesv2->enabled = 1;
+    ghesv2->records_to_preallocate = cpu_to_le32(1);
+    ghesv2->max_sections_per_record = cpu_to_le32(1);
+    ghesv2->max_raw_data_length = cpu_to_le32(0x1000);
+
+    /* pointer to register with address of this error data block */
+    ghesv2->error_status_address.space_id = AML_SYSTEM_MEMORY;
+    ghesv2->error_status_address.bit_width = 8;
+    ghesv2->error_status_address.bit_offset = 0;
+    ghesv2->error_status_address.access_width = 1;
+    address = memmap[VIRT_HEST_CONTROL].base + ((source++) * sizeof(uint64_t));
+    ghesv2->error_status_address.address = cpu_to_le64(address);
+
+    /* how does the cpu get notified? */
+    ghesv2->notify.type = ACPI_HEST_NOTIFY_SEA;
+    ghesv2->notify.length = (uint8_t)sizeof(AcpiHestNotify);
+    ghesv2->notify.config_write_enable = cpu_to_le16(ACPI_HEST_TYPE);
+
+    ghesv2->error_block_length = cpu_to_le32(0x10000);
+
+    /* error block synchronization info */
+    ghesv2->read_ack_register.space_id = AML_SYSTEM_MEMORY;
+    ghesv2->read_ack_register.bit_width = 8;
+    ghesv2->read_ack_register.bit_offset = 0;
+    ghesv2->read_ack_register.access_width = 1;
+    address = memmap[VIRT_HEST_CONTROL].base + ((source++) * sizeof(uint64_t));
+    ghesv2->error_status_address.address = cpu_to_le64(address);
+
+    ghesv2->read_ack_preserve = 0x0;
+    ghesv2->read_ack_write = cpu_to_le64(0xdeadbeef);
+
+    /* all done */
+    *id = --source;
+}
+
+/* HEST */
+static void
+build_hest(GArray *table_data, BIOSLinker *linker, VirtGuestInfo *guest_info)
+{
+    int hest_start = table_data->len;
+    //const MemMapEntry *memmap = guest_info->memmap;
+    AcpiTableHest *hest;
+    int source_id = 0;
+
+    hest = acpi_data_push(table_data, sizeof *hest);
+
+    /*
+     * NB: error source structure types 0, 1, and 2 are IA-32 specific,
+     * so not used here.  Types 3, 4, and 5 are reserved, so also not
+     * used here.  That is, there is no use of:
+     * 		ACPI_HEST_TYPE_IA32_CHECK
+     * 		ACPI_HEST_TYPE_IA32_CORRECTED_CHECK
+     * 		ACPI_HEST_TYPE_IA32_NMI
+     * 		ACPI_HEST_TYPE_NOT_USED3
+     * 		ACPI_HEST_TYPE_NOT_USED4
+     * 		ACPI_HEST_TYPE_NOT_USED5
+     */
+
+    /* Set up an AER root port error source */
+    source_id++;
+
+    /* Set up an AER endpoint error source */
+    source_id++;
+
+    /* Set up an AER bridge error source */
+    source_id++;
+
+    /* Set up a generic hardware error source (v1) */
+    source_id++;
+    build_ghes(table_data, guest_info, &source_id);
+
+    /* Set up a generic hardware error source (v2) */
+    source_id++;
+    build_ghesv2(table_data, guest_info, &source_id);
+
+    build_header(linker, table_data,
+                 (void *)(table_data->data + hest_start), "HEST",
+                 table_data->len - hest_start, 1, NULL, NULL);
+}
+
 typedef
 struct AcpiBuildState {
     /* Copy of table in RAM (for patching). */
@@ -715,6 +843,9 @@ void virt_acpi_build(VirtGuestInfo *guest_info, AcpiBuildTables *tables)
      */
     acpi_add_table(table_offsets, tables_blob);
     build_bert(tables_blob, tables->linker, guest_info);
+
+    acpi_add_table(table_offsets, tables_blob);
+    build_hest(tables_blob, tables->linker, guest_info);
 
     if (nb_numa_nodes > 0) {
         acpi_add_table(table_offsets, tables_blob);

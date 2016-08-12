@@ -68,6 +68,8 @@ enum {
     VIRT_SECURE_UART,
     VIRT_SECURE_MEM,
     VIRT_BERT_REGION,
+    VIRT_HEST_CONTROL,
+    VIRT_HEST_REGION,
 };
 
 typedef struct MemMapEntry {

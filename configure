@@ -320,6 +320,7 @@ vhdx=""
 numa=""
 tcmalloc="no"
 jemalloc="no"
+bert_tests="no"
 
 # parse CC options first
 for opt do
@@ -1150,6 +1151,10 @@ for opt do
   ;;
   --enable-jemalloc) jemalloc="yes"
   ;;
+  --disable-bert-tests) bert_tests="no"
+  ;;
+  --enable-bert-tests) bert_tests="yes"
+  ;;
   *)
       echo "ERROR: unknown option $opt"
       echo "Try '$0 --help' for more information"
@@ -1380,6 +1385,7 @@ disabled with --disable-FEATURE, default is enabled if available:
   numa            libnuma support
   tcmalloc        tcmalloc support
   jemalloc        jemalloc support
+  bert-tests	  ACPI BERT error status block tests (default is disabled)
 
 NOTE: The object files are built at the place where configure is launched
 EOF
@@ -3247,6 +3253,21 @@ else
 fi
 
 ##########################################
+# ACPI APEI BERT tests are only on aarch64 Linux targets
+
+for target in $target_list; do
+  case $target in
+    aarch64*-softmmu)
+      if test "$targetos" = Linux ; then
+        acpi_bert_tests=$bert_tests
+      else
+        acpi_bert_tests=no
+      fi
+    ;;
+  esac
+done
+
+##########################################
 # attr probe
 
 if test "$attr" != "no" ; then
@@ -4898,6 +4919,7 @@ echo "bzip2 support     $bzip2"
 echo "NUMA host support $numa"
 echo "tcmalloc support  $tcmalloc"
 echo "jemalloc support  $jemalloc"
+echo "ACPI BERT tests   $bert_tests"
 echo "avx2 optimization $avx2_opt"
 
 if test "$sdl_too_old" = "yes"; then
@@ -5429,6 +5451,11 @@ if test "$tpm" = "yes"; then
   if test "$tpm_passthrough" = "yes"; then
     echo "CONFIG_TPM_PASSTHROUGH=y" >> $config_host_mak
   fi
+fi
+
+# ACPI BERT tests support?
+if test "$bert_tests" = "yes"; then
+  echo 'CONFIG_BERT_TESTS=y' >> $config_host_mak
 fi
 
 echo "TRACE_BACKENDS=$trace_backends" >> $config_host_mak

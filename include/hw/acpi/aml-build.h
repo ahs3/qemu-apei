@@ -210,6 +210,7 @@ struct AcpiBuildTables {
     GArray *table_data;
     GArray *rsdp;
     GArray *tcpalog;
+    GArray *bert_esb;		/* BERT Error Status Block */
     BIOSLinker *linker;
 } AcpiBuildTables;
 

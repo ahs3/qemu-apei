@@ -1559,6 +1559,7 @@ void acpi_build_tables_init(AcpiBuildTables *tables)
     tables->rsdp = g_array_new(false, true /* clear */, 1);
     tables->table_data = g_array_new(false, true /* clear */, 1);
     tables->tcpalog = g_array_new(false, true /* clear */, 1);
+    tables->bert_esb = g_array_new(false, true /* clear */, 1);
     tables->linker = bios_linker_loader_init();
 }
 

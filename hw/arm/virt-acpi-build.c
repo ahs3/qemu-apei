@@ -44,6 +44,7 @@
 #include "hw/pci/pcie_host.h"
 #include "hw/pci/pci.h"
 #include "sysemu/numa.h"
+#include "hw/arm/acpi-bert-tests.h"
 
 #define ARM_SPI_BASE 32
 #define ACPI_POWER_BUTTON_DEVICE "PWRB"
@@ -843,6 +844,7 @@ void virt_acpi_build(VirtGuestInfo *guest_info, AcpiBuildTables *tables)
      */
     acpi_add_table(table_offsets, tables_blob);
     build_bert(tables_blob, tables->linker, guest_info);
+    build_acpi_bert_tests();
 
     acpi_add_table(table_offsets, tables_blob);
     build_hest(tables_blob, tables->linker, guest_info);

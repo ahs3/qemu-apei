@@ -28,8 +28,11 @@ extern void print_hex_dump(const char *prefix_str, int prefix_type,
 #include "cper.h"
 /* end */
 
+/* Fun stuff for this application */
 #define BUFLEN		0x400
 #define ESB_SIZE	0x10000
 #define PFX		"MKESB"
+
+#include "esb.h"
 
 #endif

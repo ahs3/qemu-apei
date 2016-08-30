@@ -132,6 +132,8 @@ enum {
 #define CPER_SEC_VALID_FRU_ID			0x1
 /* corresponds fru_text */
 #define CPER_SEC_VALID_FRU_TEXT			0x2
+/* corresponds time_stamp */
+#define CPER_SEC_VALID_TIME_STAMP		0x4
 
 /*
  * Flags bits definitions for flags in struct cper_section_descriptor
@@ -185,7 +187,7 @@ enum {
 /* Processor Specific: IA64 */
 #define CPER_SEC_PROC_IPF						\
 	UUID_LE(0xE429FAF1, 0x3CB7, 0x11D4, 0x0B, 0xCA, 0x07, 0x00,	\
-		0x80, 0xC7, 0x3C, 0x88, 0x81)
+		0x80, 0xC7, 0x3C, 0x88)
 /* Processor Specific: ARMv8 */
 #define CPER_SEC_PROC_ARMV8						\
 	UUID_LE(0xE19E3D16, 0xBC11, 0x11E4, 0x9C, 0xAA, 0xC2, 0x05,	\
